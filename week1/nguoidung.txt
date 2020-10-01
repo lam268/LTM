@@ -1,0 +1,6 @@
+hust1 hust1234 1
+hedspi1 hedspi2016 0
+soict soict123 1
+it4026 123456 2
+soict4026 soict123 2
+it123 123 0

@@ -1,4 +1,3 @@
-// hello.c
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -8,69 +7,12 @@
 struct person {
     char username[20];
     char password[20];
-    char status[2];
+    int status;
     int signin;
     struct person *next;
 };
 typedef struct person account;
 account *first, *last;
-
-void splitstr(char s[]) {
-    int i = 0;
-    char *ptr = strtok (s, " ");
-    char *array[3];
-    account *p;
-
-    while (ptr != NULL)
-    {
-        array[i++] = ptr;
-        ptr = strtok (NULL, " ");
-    }
-    p = (account *)malloc(sizeof(account));
-    p->next = NULL;
-    strcpy(p->username,array[0]);
-    strcpy(p->password,array[1]);
-    strcpy(p->status,array[2]);
-    if (first == NULL){
-        first = p;
-        last = p;
-    }
-    else {
-        last -> next = p;
-        last = p;
-    }
-}
-
-void printlist() {
-    account *p;
-    if (first == NULL){
-        printf("Linkedlist is empty!");
-    }
-    else {
-        p = first;
-        int i = 0;
-        while (p != NULL){
-            i++;
-            printf("%d %s %s %s\n",i,p->username,p->password,p->status);
-            p = p->next;
-        }
-    }
-}
-
-void readfile(void) {
-    FILE* file = fopen("D:\\LTM\\week1\\nguoidung.txt", "r");
-    char line[256];
-    account *p;
-    if (file == NULL) {
-        printf("Error in reading file!\n");
-        exit(1);
-    }
-    while (fgets(line, MAXCHAR, file)) {
-        splitstr(line);
-    }
-    printlist();
-    fclose(file);
-}
 
 int printmenu() {
     int n;
@@ -87,26 +29,73 @@ int printmenu() {
     return n;
 }
 
+void splitstr(char *s) {
+    int i = 0;
+    char *token = strtok(s," ");
+    char *array[3];
+    account *p;
+    while (token != NULL) {
+        array[i++] = token;
+        token = strtok(NULL," ");
+    }
+    p = (account *)malloc(sizeof(account));
+    p->next = NULL;
+    strcpy(p->username,array[0]);
+    strcpy(p->password,array[1]);
+    p -> status = atoi(array[2]);
+    p -> signin = 0;
+    if (first == NULL){
+        first = p;
+        last = p;
+    } else {
+        last -> next = p;
+        last = p;
+    }
+}
+
+void printlist() {
+    account *p;
+    p = first;
+    while ( p != NULL){
+        printf("%s %s %d %d\n",p->username,p->password,p->status,p->signin);
+        p = p->next;
+    }
+}
+
+void readFile(){
+    FILE* file = fopen("D:\\LTM\\week1\\nguoidung.txt", "r");
+    char line[256];
+    account *p;
+    if (file == NULL) {
+        printf("Error in reading file!\n");
+        exit(1);
+    }
+    while (fgets(line, MAXCHAR, file)) {
+        splitstr(line);
+    }
+    fclose(file);
+}
+
 void Register() {
     char username[20];
     char password[20];
     account *p;
-    int found = 0;
-    printf("Username: \n");
+    int found;
+    printf("Username\n");
     scanf("%s", username);
     p = first;
     if (p != NULL) {
         while (p != NULL) {
-            if (strcmp(username,p->username) == 0){
+            if (strcmp(username, p->username) == 0){
                 found = 1;
                 break;
             }
             else {
-                p = p->next;
+                p = p -> next;
             }
         }
     }
-    if (found == 1){
+    if (found == 1) {
         printf("Account existed!!!\n");
     } else {
         printf("Password: \n");
@@ -115,32 +104,33 @@ void Register() {
         p->next = NULL;
         strcpy(p->username, username);
         strcpy(p->password, password);
-        strcpy(p->status,"2");
+        p->status = 2;
         last -> next = p;
         last = p;
     }
-    printlist();
 }
 
 void Activate() {
     char username[20];
     account *p;
     int found = 4;
-    printf("Username: \n");
+    printf("Username\n");
     scanf("%s", username);
     p = first;
     if (p != NULL) {
         while (p != NULL) {
-            if (strcmp(username,p->username) == 0){
-                found = atoi(p->status);
+            if (strcmp(username, p->username) == 0){
+                found = p -> status;
                 break;
             }
             else {
-                p = p->next;
+                p = p -> next;
             }
         }
     }
-    if (found == 2) {
+    if( found == 1){
+        printf("Account is activated\n");
+    } else if (found == 2) {
         char str[20];
         int count = 0;
         while (strcmp("LTM121216",str) != 0 && count < 4){
@@ -150,23 +140,35 @@ void Activate() {
             count++;
         }
         if (count > 3){
-            strcpy(p->status,"0");
+            p->status = 0;
             printf("Activation code is incorrect.Account is blocked\n");
         } else {
-            strcpy(p->status,"1");
+            p->status = 1;
             printf("Account is activated\n");
         }
-    } else if (found == 1){
-        printf("Account is activated\n");
-    } else if (found == 0){
+    } else if (found == 0) {
         printf("Account is blocked\n");
-    }
-    else {
-        printf("This account is not registered.\n");
+    } else {
+        printf("Cannot find this account\n");
     }
 }
 
-void Signin(){
+void OutputFile(){
+    FILE* file = fopen("D:\\LTM\\week1\\nguoidung.txt", "w");
+    account *p;
+    if (file == NULL) {
+        printf("Error in reading file!\n");
+        exit(1);
+    }
+    p = first;
+    while (p != NULL) {
+        fprintf(file,"%s %s %d\n",p->username,p->password,p->status);
+        p = p->next;
+    }
+    fclose(file);
+}
+
+void Signin() {
     char username[20];
     char password[20];
     account *p;
@@ -177,7 +179,7 @@ void Signin(){
     if (p != NULL) {
         while (p != NULL) {
             if (strcmp(username,p->username) == 0){
-                found = atoi(p->status);
+                found = p -> status;
                 break;
             }
             else {
@@ -197,10 +199,11 @@ void Signin(){
             count++;
         }
         if (count > 3){
-            strcpy(p->status,"0");
+            p->status = 0;
             printf("Password is incorrect.Account is blocked\n");
         } else {
             printf("Hello %s\n",p->username);
+            p->signin = 1;
         }
     } else if (found == 2){
         printf("Account is not activated\n");
@@ -213,22 +216,29 @@ void Signin(){
     }
 }
 
-void Searchwhensignin() {
+int checkSignin() {
     account *p;
-    int signin;
-    char username[20];
     p = first;
-    if ( p != NULL ){
-        while ( p != NULL){
-            if (p->signin == 1){
-                signin = p ->signin;
+    int found = 0;
+    if (p != NULL) {
+        while (p != NULL) {
+            if (p ->signin == 1){
+                found = p -> signin;
                 break;
-            } else {
+            }
+            else {
                 p = p->next;
             }
         }
     }
-    if (signin == 1){
+    return found;
+}
+
+void Search() {
+    int i = checkSignin();
+    char username[20];
+    account *p;
+    if (i == 1){
         printf("Username\n");
         scanf("%s",username);
         int found =4;
@@ -236,7 +246,7 @@ void Searchwhensignin() {
         if (p != NULL) {
             while (p != NULL) {
                 if (strcmp(username,p->username) == 0){
-                    found = atoi(p->status);
+                    found = p->status;
                     break;
                 }
                 else {
@@ -253,94 +263,95 @@ void Searchwhensignin() {
         } else {
             printf("Cannot find account\n");
         }
-    }   
+    } else {
+        printf("You are not signed in \n");
+    }
 }
 
 void ChangePassword() {
+    int i = checkSignin();
     char username[20];
     char password[20];
+    char new_password[20];
     account *p;
-    int found = 4;
-    printf("Username \n");
-    scanf("%s", username);
-    p = first;
-    if (p != NULL) {
-        while (p != NULL) {
-            if (strcmp(username,p->username) == 0){
-                found = atoi(p->status);
-                break;
+    if (i == 1){
+        printf("Username\n");
+        scanf("%s",username);
+        int found =4;
+        p = first;
+        if (p != NULL) {
+            while (p != NULL) {
+                if (strcmp(username,p->username) == 0){
+                    found = p->status;
+                    break;
+                }
+                else {
+                    p = p->next;
+                }
             }
-            else {
-                p = p->next;
+        }
+        if (found == 1){
+            int count = 0;
+            printf("Old password\n");
+            scanf("%s",password);
+            while (strcmp(p->password,password) != 0 && count < 4){
+                printf("Old password\n");
+                scanf("%s",password);
+                count++;
             }
+            if (count > 3){
+                p->status = 0;
+                printf("Account is blocked\n");
+            }
+                printf("New password\n");
+                scanf("%s",new_password);
+                strcpy(p->password,new_password); 
+        } else if (found == 0){
+            printf("Account is blocked\n");
+        } else {
+            printf("Cannot find account\n");
         }
-    }
-    if (found == 0){
-        printf("Account is blocked\n");
-    } else if (found == 2) {
-        printf("Account is not activated\n");
-    } else if (found == 1) {
-        if (p->signin == 1){
-            printf("Password\n");
-            scanf("%s",password);
-        }
-        while (strcmp(password,p->password) != 0){
-            printf("Password\n");
-            scanf("%s",password);
-        }
-        char np[20];
-        printf("New Password\n");
-        scanf("%s",np);
-        strcmp(p->password,np);
     } else {
-        printf("Cannot find account\n");
+        printf("You are not signed in \n");
     }
 }
 
 void Signout() {
+    int i = checkSignin();
     char username[20];
     account *p;
-    int found = 4;
-    printf("Username: \n");
-    scanf("%s", username);
-    p = first;
-    if (p != NULL) {
-        while (p != NULL) {
-            if (strcmp(username,p->username) == 0){
-                found = atoi(p->status);
-                break;
-            }
-            else {
-                p = p->next;
+    if (i == 1){
+        printf("Username\n");
+        scanf("%s",username);
+        int found =4;
+        p = first;
+        if (p != NULL) {
+            while (p != NULL) {
+                if (strcmp(username,p->username) == 0){
+                    found = p->status;
+                    break;
+                }
+                else {
+                    p = p->next;
+                }
             }
         }
+        if (found == 1){
+            p -> signin = 0;
+            printf("Goodbye %s\n",p->username);
+        } else if (found == 0){
+            printf("Account is blocked\n");
+        } else {
+            printf("Cannot find account\n");
+        }
+    } else {
+        printf("You are not signed in \n");
     }
-    if(p->signin == 1){
-        p->signin = 0;
-        printf("Goodbye %s\n",p->username);
-    } else if (found == 4) {
-        printf("Cannot find account\n");
-    }  
-}
-
-void OutputFile(){
-    FILE* file = fopen("D:\\LTM\\week1\\nguoidung.txt", "w");
-    account *p;
-    if (file == NULL) {
-        printf("Error in reading file!\n");
-        exit(1);
-    }
-    p = first;
-    while (p != NULL) {
-        fprintf(file,"%s %s %s\n",p->username,p->password,p->status);
-        p = p->next;
-    }
-    fclose(file);
 }
 
 int main() {
     int n,m;
-    readfile();
+    readFile();
     do 
     {
         n = printmenu();
@@ -355,13 +366,13 @@ int main() {
             Signin();
             break;
             case 4:
-            Searchwhensignin();
+            Search();
             break;
             case 5: 
             ChangePassword();
             break;
             case 6:
-            Signout(); 
+            Signout();
             break;
             default:
             printf("Goodbye!!!");

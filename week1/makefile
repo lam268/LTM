@@ -1,0 +1,1 @@
+gcc -o week1.o week1.c
