@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -I
 LIBS = -lm
-TARGET = resolver
+TARGET = week3
 
 DEPS = $(wildcard lib/*.h)
 src = $(wildcard src/*.c)
