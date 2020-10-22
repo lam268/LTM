@@ -3,10 +3,10 @@
 #include <sys/types.h> 
 #include <arpa/inet.h> 
 #include <sys/socket.h> 
-#include<netinet/in.h> 
-#include<unistd.h> 
-#include<stdlib.h> 
-#include<string.h>
+#include <netinet/in.h> 
+#include <unistd.h> 
+#include <stdlib.h> 
+#include <string.h>
 #define MAXLINE 1000 
 
 // Driver code 
@@ -15,12 +15,8 @@ int main(int argc, char *argv[])
 	// catch wrong input
 	if(argc!=3){
 		printf("Please input IP address and port number\n");
-		return 0;
+		exit(0);
 	}
-	// ip_address : get ip from argv
-	// port : get port from argv
-	// buffer : data get from server
-	// message: data send to server
 	char *ip_address = argv[1];
 	char *port_number = argv[2];
 	int port = atoi(port_number);
@@ -43,30 +39,25 @@ int main(int argc, char *argv[])
 		printf("\n Error : Connect Failed \n"); 
 		exit(0); 
 	} 
-
+	char username[20];
+	int len;
+	char buffer[100];
 	do {
-		int g= 0;
-		char buffer[100];
-		char message[100];
 		// get message
-		printf("INPUT: ");
-		g = scanf("%[^\n]", message); 
-		if (g == 0) break;
-		getchar();
-		// request to send datagram 
-		// no need to specify server address in sendto 
-		// connect stores the peers IP and port 
-		sendto(sockfd, message, MAXLINE, 0, (struct sockaddr*)&servaddr, sizeof(servaddr)); 
-		
-		// waiting for response 
+		printf("input username: \n"); 
+		scanf("%[^\n]",&username);
+		if (username[0] == '\0') {
+			exit(0);
+		}
+		sendto(sockfd, username, MAXLINE, 0, (struct sockaddr*)&servaddr, sizeof(servaddr)); 
 		recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)NULL, NULL); 
-		puts("OUTPUT: ");
-		puts(buffer); 
-		recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr*)NULL, NULL); 
-		puts(buffer);
+		printf("OUTPUT: ");
+		n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
+                MSG_WAITALL, (struct sockaddr *) &servaddr, 
+                &len); 
+    	buffer[n] = '\0'; 
+    	printf("%s\n", buffer);
 		puts("-------------------------");
-	}while(1);	
-	// close the descriptor 
+	}while(username[0] != '\0');	
 	close(sockfd); 
-	return 0;
 }

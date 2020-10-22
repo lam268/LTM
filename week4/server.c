@@ -134,13 +134,7 @@ void OutputFileLast(){
     fclose(file);
 }
 
-void Signin() {
-    char username[20];
-    char password[20];
-    account *p;
-    printf("Username: \n");
-    scanf("%s", username);
-    p = CheckAccount(username);
+void Signin(account *p) {
     if (p->status == 1) {
         char str[20];
         int count = 0;
@@ -198,30 +192,31 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     int port_number = atoi(argv[1]);
-    char buffer1[100];
-    char buffer2[100];
-    char user_name[100];
-    char password[100];
-    int listenfd, len1,len2; 
-	struct sockaddr_in servaddr, cliaddr1, cliaddr2; 
-	bzero(&servaddr, sizeof(servaddr)); 
-	// Create a UDP Socket 
-	listenfd = socket(AF_INET, SOCK_DGRAM, 0);		 
+    char buffer[20];
+    account *p;
+    int listenfd, len, n;
+    char *ok = "OK";
+    char *failed = "FAIL";
+    struct sockaddr_in servaddr, cliaddr;
+    bzero(&servaddr, sizeof(servaddr));
+    listenfd = socket(AF_INET, SOCK_DGRAM, 0);		 
 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
 	servaddr.sin_port = htons(port_number); 
 	servaddr.sin_family = AF_INET; 
 
 	// bind server address to socket descriptor 
-	bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)); 
-    while(1){
-	//receive the datagram from client 1 and 2
-	len1 = sizeof(cliaddr1); 
-	len2 = sizeof(cliaddr2); 
-	int n1 = recvfrom(listenfd, buffer1, sizeof(buffer1), 0, (struct sockaddr*)&cliaddr1,&len1);
-	int n2 = recvfrom(listenfd, buffer2, sizeof(buffer2), 0, (struct sockaddr*)&cliaddr2,&len2);  
-
-	buffer1[n1] = '\0';
-	buffer2[n2] = '\0';
-    Signin();
+	bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
+    while (1){
+        len = sizeof(cliaddr);  //len is value/resuslt 
+        n = recvfrom(listenfd, (char *)buffer, MAXLINE,  
+                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
+                &len); 
+        buffer[n] = '\0'; 
+        p = CheckAccount(buffer);
+        if (p == NULL){
+            sendto(listenfd, (char *)failed, strlen(failed), 0, (struct sockaddr *) &cliaddr, len);     
+        } else {
+            sendto(listenfd, (char *)ok, strlen(ok), 0, (struct sockaddr *) &cliaddr, len);     
+        }
     }
 }
