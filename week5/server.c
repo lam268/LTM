@@ -87,6 +87,12 @@ account *CheckAccount(char *s) {
     return current;
 }
 
+void resetchar(char *s){
+    for (int i=0; i < strlen(s); i++){
+        s[i] = '\0';
+    }
+}
+
 void printlist() {
     account *p;
     p = first;
@@ -94,22 +100,6 @@ void printlist() {
         printf("%s %s %d %d\n",p->username,p->password,p->status,p->signin);
         p = p->next;
     }
-}
-
-void checknewpassword(char *s){
-    int n = 0;
-    if (strcmp(s,"") || strcmp(s,"bye")){
-        n = 0;
-    } else {
-        for (int i=0; i< strlen(s); i++){
-            if(s<48){
-                n = 0;
-            } else {
-                n = 1;
-            }
-        }
-    }
-    return n;
 }
 
 
@@ -129,6 +119,9 @@ int main(int argc, char *argv[])
 
     // Clean buffers:
     memset(server_message, '\0', sizeof(server_message));
+    memset(username, '\0', sizeof(username));
+    memset(password, '\0', sizeof(password));
+    memset(new_password, '\0', sizeof(new_password));
     
     // Create socket:
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
@@ -172,6 +165,8 @@ int main(int argc, char *argv[])
     printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
     // Check Account:
     do {
+        resetchar(username);
+        resetchar(server_message);
         printf("Username: %s\n", username);
         if (recv(client_sock, username, sizeof(username), 0) < 0){
             printf("Couldn't receive\n");
@@ -192,6 +187,8 @@ int main(int argc, char *argv[])
     
     // Check Password
     do {
+        resetchar(password);
+        resetchar(server_message);
         printf("Password: %s\n", password);
         if (recv(client_sock, password, sizeof(password), 0) < 0){
             printf("Couldn't receive\n");
@@ -223,13 +220,41 @@ int main(int argc, char *argv[])
         }
     } while (true);    
     
+    char numberx[60],stringx[60];
     // Change Password
+    memset(server_message, '\0', sizeof(server_message));
     if (recv(client_sock, new_password, sizeof(new_password), 0) < 0){
             printf("Couldn't receive\n");
             return -1;
         }
+    int j = 0;
+    int error = 0;
     printf("New Password: %s\n", new_password);
-    checknewpassword(new_password);
+    for (int i = 0; i < strlen(new_password); i++){
+        if (new_password[i] == '\0'){
+            error = 1;
+            break;
+        } else if (new_password[i] >= '0' && new_password[i] <= '9'){
+            numberx[j] = new_password[i];
+            j++;
+        } else if (new_password[i] >= 'a' && new_password[i] <= 'z'){
+            stringx[j] = new_password[i];
+            j++;
+        } else {
+            error = 1;
+            break;
+        }
+    }
+    if (error != 0){
+        strcpy(server_message, "Wrong input\n");
+        send(client_sock, server_message, strlen(server_message), 0);
+    } else {
+        strcpy(p->password,new_password);
+        printf("%s\n",strcat(numberx,stringx));
+        OutputFile();
+        strcpy(server_message, strcat(numberx,stringx));
+        send(client_sock, server_message, strlen(server_message), 0);
+    }
        
     // Closing the socket:
     close(client_sock);
