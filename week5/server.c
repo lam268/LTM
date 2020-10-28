@@ -172,6 +172,7 @@ int main(int argc, char *argv[])
     printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
     // Check Account:
     do {
+        printf("Username: %s\n", username);
         if (recv(client_sock, username, sizeof(username), 0) < 0){
             printf("Couldn't receive\n");
             return -1;
@@ -191,6 +192,7 @@ int main(int argc, char *argv[])
     
     // Check Password
     do {
+        printf("Password: %s\n", password);
         if (recv(client_sock, password, sizeof(password), 0) < 0){
             printf("Couldn't receive\n");
             return -1;
