@@ -1,222 +1,63 @@
-#include <stdio.h> 
-#include <strings.h> 
-#include <sys/types.h> 
-#include <arpa/inet.h> 
-#include <sys/socket.h> 
-#include<netinet/in.h> 
+#include <stdio.h>
 #include <string.h>
-#include <ctype.h>
-#include<stdlib.h>
-#define MAXCHAR 1000 
-#define MAXLINE 1000
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
-struct person {
-    char username[20];
-    char password[20];
-    char homepage[60];
-    int status;
-    int signin;
-    struct person *next;
-};
-typedef struct person account;
-account *first, *last, *current;
-
-int printmenu() {
-    int n;
-    printf("USER MANAGEMENT PROGRAM\n");
-    printf("-----------------------------------\n");
-    printf("1. Register\n");
-    printf("2. Activate\n");
-    printf("3. Sign in\n");
-    printf("4. Search\n");
-    printf("5. Change password\n");
-    printf("6. Sign out\n");
-    printf("7. Homepage with domain name\n");
-    printf("8. Homepage with IP address\n");
-    printf("Your choice (1-6, other to quit): \n");
-    scanf("%d", &n);
-    return n;
-}
-
-void splitstr(char *s) {
-    int i = 0;
-    char *token = strtok(s," ");
-    char *array[5];
-    account *p;
-    while (token != NULL) {
-        array[i++] = token;
-        token = strtok(NULL," ");
+int main(void){
+    int socket_desc;
+    struct sockaddr_in server_addr, client_addr;
+    char server_message[2000], client_message[2000];
+    int client_struct_length = sizeof(client_addr);
+    
+    // Clean buffers:
+    memset(server_message, '\0', sizeof(server_message));
+    memset(client_message, '\0', sizeof(client_message));
+    
+    // Create UDP socket:
+    socket_desc = socket(AF_INET, SOCK_DGRAM, 0);
+    
+    if(socket_desc < 0){
+        printf("Error while creating socket\n");
+        return -1;
     }
-    p = (account *)malloc(sizeof(account));
-    p->next = NULL;
-    strcpy(p->username,array[0]);
-    strcpy(p->password,array[1]);
-    p -> status = atoi(array[2]);
-    strcpy(p->homepage,array[3]);
-    p -> signin = atoi(array[4]);
-    if (first == NULL){
-        first = p;
-        last = p;
-    } else {
-        last -> next = p;
-        last = p;
+    printf("Socket created successfully\n");
+    
+    // Set port and IP:
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(2000);
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+    
+    // Bind to the set port and IP:
+    if(bind(socket_desc, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
+        printf("Couldn't bind to the port\n");
+        return -1;
     }
-}
-
-void printlist() {
-    account *p;
-    p = first;
-    while ( p != NULL){
-        printf("%s %s %d %d\n",p->username,p->password,p->status,p->signin);
-        p = p->next;
+    printf("Done with binding\n");
+    
+    printf("Listening for incoming messages...\n\n");
+    
+    // Receive client's message:
+    if (recvfrom(socket_desc, client_message, sizeof(client_message), 0,
+         (struct sockaddr*)&client_addr, &client_struct_length) < 0){
+        printf("Couldn't receive\n");
+        return -1;
     }
-}
-
-void readFile(){
-    FILE* file = fopen("D:\\LTM\\LTM\\week4\\nguoidung.txt", "r");
-    char line[256];
-    account *p;
-    if (file == NULL) {
-        printf("Error in reading file!\n");
-        exit(1);
+    printf("Received message from IP: %s and port: %i\n",
+           inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+    
+    printf("Msg from client: %s\n", client_message);
+    
+    // Respond to client:
+    strcpy(server_message, client_message);
+    
+    if (sendto(socket_desc, server_message, strlen(server_message), 0,
+         (struct sockaddr*)&client_addr, client_struct_length) < 0){
+        printf("Can't send\n");
+        return -1;
     }
-    while (fgets(line, MAXCHAR, file)) {
-        splitstr(line);
-    }
-    fclose(file);
-}
-
-account *CheckAccount(char *s) {
-    account *p;
-    p = first;
-    if (p != NULL) {
-        while (p != NULL) {
-            if (strcmp(s, p->username) == 0){
-                current = p;
-                break;
-            }
-            else {
-                p = p -> next;
-            }
-        }
-    }
-    return current;
-}
-
-void OutputFile(){
-    FILE* file = fopen("D:\\LTM\\LTM\\week4\\nguoidung.txt", "w");
-    account *p;
-    if (file == NULL) {
-        printf("Error in reading file!\n");
-        exit(1);
-    }
-    p = first;
-    while (p != NULL) {
-        fprintf(file,"%s %s %d %s %d\n",p->username,p->password,p->status,p->homepage,p->signin);
-        p = p->next;
-    }
-    fclose(file);
-}
-
-void OutputFileLast(){
-    FILE* file = fopen("D:\\LTM\\LTM\\week4\\nguoidung.txt", "w");
-    account *p;
-    if (file == NULL) {
-        printf("Error in reading file!\n");
-        exit(1);
-    }
-    p = first;
-    while (p != NULL) {
-        p->signin = 0;
-        fprintf(file,"%s %s %d %s %d\n",p->username,p->password,p->status,p->homepage,p->signin);
-        p = p->next;
-    }
-    fclose(file);
-}
-
-void Signin(account *p) {
-    if (p->status == 1) {
-        char str[20];
-        int count = 0;
-        printf("Password \n");
-        scanf("%s", str);
-        while((strcmp(str,p->password) != 0) && count < 4){
-            printf("Wrong password.\n");
-            printf("Password \n");
-            scanf("%s", str);
-            count++;
-        }
-        if (count > 3){
-            p->status = 0;
-            printf("Password is incorrect.Account is blocked\n");
-        } else {
-            printf("Hello %s\n",p->username);
-            p->signin = 1;
-        }
-    } else if (p->status == 2){
-        printf("Account is not activated\n");
-        printf("Please activate ur account in option 2\n");
-    } else if (p->status == 0){
-        printf("Account is blocked\n");
-    }
-    else {
-        printf("This account is not registered.\n");
-    }
-    current =NULL;
-}
-
-void Signout() {
-    char username[20];
-    account *p;
-    printf("Username:\n");
-    scanf("%s",username);
-    p = CheckAccount(username);
-    if (p -> signin == 1){
-        if (p->status == 1){
-            p -> signin = 0;
-            printf("Goodbye %s\n",p->username);
-        } else if (p->status == 0){
-            printf("Account is blocked\n");
-        } else {
-            printf("Cannot find account\n");
-        }
-    } else {
-        printf("You are not signed in \n");
-    }
-    current = NULL;
-}
-
-int main(int argc, char *argv[]) {
-    if (argc == 1){
-        printf("Please input port number!");
-        return 0;
-    }
-    int port_number = atoi(argv[1]);
-    char buffer[20];
-    account *p;
-    int listenfd, len, n;
-    char *ok = "OK";
-    char *failed = "FAIL";
-    struct sockaddr_in servaddr, cliaddr;
-    bzero(&servaddr, sizeof(servaddr));
-    listenfd = socket(AF_INET, SOCK_DGRAM, 0);		 
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-	servaddr.sin_port = htons(port_number); 
-	servaddr.sin_family = AF_INET; 
-
-	// bind server address to socket descriptor 
-	bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
-    while (1){
-        len = sizeof(cliaddr);  //len is value/resuslt 
-        n = recvfrom(listenfd, (char *)buffer, MAXLINE,  
-                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
-                &len); 
-        buffer[n] = '\0'; 
-        p = CheckAccount(buffer);
-        if (p == NULL){
-            sendto(listenfd, (char *)failed, strlen(failed), 0, (struct sockaddr *) &cliaddr, len);     
-        } else {
-            sendto(listenfd, (char *)ok, strlen(ok), 0, (struct sockaddr *) &cliaddr, len);     
-        }
-    }
+    
+    // Close the socket:
+    close(socket_desc);
+    
+    return 0;
 }
