@@ -3,13 +3,20 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include<unistd.h>
 
 int main(int argc, char *argv[])
 {
+    if(argc!=3){
+		printf("Please input IP address and port number\n");
+		return 0;
+	}
     int socket_desc;
     struct sockaddr_in server_addr;
     char server_message[2000];
     char password[60], username[20];
+    char null[20] = "\0";
     char new_password[20];
     int port = atoi(argv[2]);
 
@@ -30,7 +37,7 @@ int main(int argc, char *argv[])
     printf("Socket created successfully\n");
     
     // Set port and IP the same as server-side:
-   server_addr.sin_family = AF_INET;
+    server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = INADDR_ANY; 
     
@@ -43,13 +50,13 @@ int main(int argc, char *argv[])
     
     // CheckAccount
     do {
-        
+        memset(username, '\0', sizeof(username));
         // Get input from the user:
         printf("Enter username: ");
-        scanf("%s",username);
-        fflush(stdin);
-        if (strcmp(username,"") == 0 || strcmp(username,"bye") == 0){
-            return 0;
+        gets(username);
+
+        if (username[0] == '\0' || strcmp(username, "bye") == 0){
+            return -1;
         }
 
         // Send the message to server:
@@ -57,22 +64,20 @@ int main(int argc, char *argv[])
     
         // Receive the server's response:
         recv(socket_desc, server_message, sizeof(server_message),0);
-        printf("%s\n",server_message);
     } while (strcmp(server_message,"Insert password\n") != 0);
 
     // CheckPassword
     do {
-        password[0] = '\0';
-        printf("Insert password\n");
-        scanf("%s",password);
-        fflush(stdin);
+        memset(password, '\0', sizeof(password));
+        printf("Insert password: ");
+        gets(password);
 
         // Send the message to server:
         send(socket_desc, password, strlen(password),0);
 
         // Receive the server's response:
         recv(socket_desc, server_message, sizeof(server_message),0);
-        printf("%s\n",server_message);
+        printf("%s",server_message);
 
         if (strcmp(server_message,"Account is blocked\n") == 0 || strcmp(server_message,"Account not ready\n") == 0){
             return 0;
@@ -80,20 +85,23 @@ int main(int argc, char *argv[])
 
     } while (strcmp(server_message, "Account is signed in\n") != 0);
     
+    memset(server_message, '\0', sizeof(server_message));
     //Change Password
-    printf("Input your new password\n");
-    scanf("%s",new_password);
-    if (strcmp(new_password,"") == 0 || strcmp(new_password,"bye") == 0){
-        return 0;
-    } else {
+    do {
+        memset(new_password, '\0', sizeof(new_password));
+        printf("Input your new password: ");
+        gets(new_password);
+        if ( new_password[0] == '\0' || strcmp(new_password,"bye") == 0){
+            return -1;
+        } else {
         // Send the message to server:
         send(socket_desc, new_password, strlen(new_password),0);
     
         // Receive the server's response:
         recv(socket_desc, server_message, sizeof(server_message),0);
         printf("%s\n",server_message);
-    }    
-
+        }    
+    } while (strcmp(server_message,"Wrong input\n") != 0);
 
     // Close the socket:
     close(socket_desc);

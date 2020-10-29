@@ -2,7 +2,9 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <stdbool.h>
+#include<unistd.h>
 #include <arpa/inet.h>
 #define MAXCHAR 1000
 
@@ -87,28 +89,13 @@ account *CheckAccount(char *s) {
     return current;
 }
 
-void resetchar(char *s){
-    for (int i=0; i < strlen(s); i++){
-        s[i] = '\0';
-    }
-}
-
-void printlist() {
-    account *p;
-    p = first;
-    while ( p != NULL){
-        printf("%s %s %d %d\n",p->username,p->password,p->status,p->signin);
-        p = p->next;
-    }
-}
-
-
 int main(int argc, char *argv[])
 {
     int socket_desc, client_sock, client_size;
     struct sockaddr_in server_addr, client_addr;
     char server_message[100], client_message[100];
     char username[20], password[20], new_password[20];
+    char only_string[20], only_number[20];
     readFile();
     if(argc == 1){
         printf("Please input port number!!!\n");
@@ -122,6 +109,8 @@ int main(int argc, char *argv[])
     memset(username, '\0', sizeof(username));
     memset(password, '\0', sizeof(password));
     memset(new_password, '\0', sizeof(new_password));
+    memset(only_number, '\0', sizeof(only_number));
+    memset(only_string, '\0', sizeof(only_string));
     
     // Create socket:
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
@@ -165,14 +154,17 @@ int main(int argc, char *argv[])
     printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
     // Check Account:
     do {
-        resetchar(username);
-        resetchar(server_message);
-        printf("Username: %s\n", username);
+        memset(server_message, '\0', sizeof(server_message));
+        memset(username, '\0', sizeof(username));
         if (recv(client_sock, username, sizeof(username), 0) < 0){
             printf("Couldn't receive\n");
             return -1;
         }
         printf("Username: %s\n", username);
+        if (username[0] == '\0' || strcmp(username,"bye") == 0){
+            printf("Couldn't receive\n");
+            return -1;
+        }
         p = CheckAccount(username);
         if (p != NULL){
             strcpy(server_message, "Insert password\n");
@@ -182,14 +174,13 @@ int main(int argc, char *argv[])
             strcpy(server_message, "Wrong account\n");
             send(client_sock, server_message, strlen(server_message), 0);
         }
-    } while (true);
+    } while (strcmp(username,"") != 0);
     int count = 0;
     
     // Check Password
+    memset(server_message, '\0', sizeof(server_message));
     do {
-        resetchar(password);
-        resetchar(server_message);
-        printf("Password: %s\n", password);
+        memset(password, '\0', sizeof(password));
         if (recv(client_sock, password, sizeof(password), 0) < 0){
             printf("Couldn't receive\n");
             return -1;
@@ -219,42 +210,43 @@ int main(int argc, char *argv[])
             break;
         }
     } while (true);    
-    
-    char numberx[60],stringx[60];
     // Change Password
-    memset(server_message, '\0', sizeof(server_message));
-    if (recv(client_sock, new_password, sizeof(new_password), 0) < 0){
+    do {
+        memset(server_message, '\0', sizeof(server_message));
+        int error = 1;
+        if (recv(client_sock, new_password, sizeof(new_password), 0) < 0){
             printf("Couldn't receive\n");
             return -1;
         }
-    int j = 0;
-    int error = 0;
-    printf("New Password: %s\n", new_password);
-    for (int i = 0; i < strlen(new_password); i++){
-        if (new_password[i] == '\0'){
-            error = 1;
-            break;
-        } else if (new_password[i] >= '0' && new_password[i] <= '9'){
-            numberx[j] = new_password[i];
-            j++;
-        } else if (new_password[i] >= 'a' && new_password[i] <= 'z'){
-            stringx[j] = new_password[i];
-            j++;
-        } else {
-            error = 1;
-            break;
+        int j,k = 0;
+        printf("New Password: %s\n", new_password);
+        for (int i = 0; i < strlen(new_password); i ++){
+            if (isdigit(new_password[i]) != 0){
+                only_number[j] = new_password[i];
+                j++;
+            } else if (isalpha(new_password[i]) != 0){
+                only_string[k] = new_password[i];
+                k++;
+            } else {
+                error = 0;
+            }
         }
-    }
-    if (error != 0){
-        strcpy(server_message, "Wrong input\n");
-        send(client_sock, server_message, strlen(server_message), 0);
-    } else {
-        strcpy(p->password,new_password);
-        printf("%s\n",strcat(numberx,stringx));
-        OutputFile();
-        strcpy(server_message, strcat(numberx,stringx));
-        send(client_sock, server_message, strlen(server_message), 0);
-    }
+        only_number[j] = '\0';
+        only_string[k] = '\0';
+        char temp[20];
+        strcpy(temp,only_number);
+        strcat(temp,only_string);
+        if (error == 0){
+            strcpy(server_message, "Wrong input\n");
+            send(client_sock, server_message, strlen(server_message), 0);
+            break;
+        } else {
+            strcpy(p->password,new_password);
+            OutputFile();
+            strcpy(server_message, temp);
+            send(client_sock, server_message, strlen(server_message), 0);
+        }
+    } while (true);
        
     // Closing the socket:
     close(client_sock);
